@@ -1,0 +1,108 @@
+<?php
+/*
+ * Plugin Name: WooCommerce Deposits Include Tax
+ * Plugin URI: https://woocommerce.com/products/woocommerce-deposits/
+ * Description: Mark items as deposit items which customers can then place deposits on, rather than paying in full.
+ * Version: 1.3.3
+ * Author: Automattic
+ * Author URI: https://woocommerce.com
+ * Text Domain: woocommerce-deposits
+ * Domain Path: /languages
+ * WC tested up to: 3.2
+ * WC requires at least: 2.6
+ *
+ * 		Copyright: © 2009-2017 Automattic.
+ *  	License: GNU General Public License v3.0
+ *   	License URI: http://www.gnu.org/licenses/gpl-3.0.html
+ *
+ * Woo: 977087:de192a6cf12c4fd803248da5db700762
+ */
+ 
+include_once(ABSPATH.'wp-admin/includes/plugin.php');
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+
+if(!is_admin()){
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-product-meta.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-plans-manager.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-cart-manager.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-order-manager.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-order-item-manager.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-scheduled-order-manager.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-product-manager.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-plan.php' );
+require_once( 'wp-content/plugins/woocommerce-deposits/includes/class-wc-deposits-my-account.php' );
+}
+ob_start();
+ob_clean();
+$enable_tax = 'woocommerce-deposits-include-tax\woocommerce-deposits-include-tax.php';
+if( !is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
+		
+		deactivate_plugins($enable_tax);	
+	
+	$class = 'notice notice-error';
+	$message = __( 'WooCommerce is not active. WooCommerce Deposits Enable Tax calculation requires WooCommerce to be active.', 'sample-text-domain' );
+
+	printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) ); 
+
+}
+	
+$deposit = 'woocommerce-deposits-include-tax\woocommerce-deposits-include-tax.php';
+if( !is_plugin_active( 'woocommerce-deposits/woocommmerce-deposits.php' ) ) {
+		
+		deactivate_plugins($deposit);
+	
+	$class = 'notice notice-error';
+	$message = __( 'WooCommerce Deposits is not active. woocommerce deposits enable tax requires WooCommerce Deposits to be active.', 'sample-text-domain' );
+
+	printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), esc_html( $message ) ); 
+
+}
+
+add_filter('woocommerce_deposits_get_settings', 'wc_deposit_enable_tax_inclusion' );
+function wc_deposit_enable_tax_inclusion( $array ){
+    $array[]=array(
+					'name'     => __( 'Add taxes and service fee to Future payment', 'woocommerce-deposits' ),
+					'type'     => 'select',
+					'desc'     => __( 'Add taxes and service fee to Future payment', 'woocommerce-deposits' ),
+					'default'  => 'no',
+					'id'       => 'wc_deposit_enable_tax_inclusion',
+					'desc_tip' => true,
+					'options'  => array(
+						'yes' => __( 'Yes', 'woocommerce-deposits' ),
+						'no'       => __( 'No', 'woocommerce-deposits' ), ), );
+    return $array;
+}
+
+			$enable_tax_inclusion = get_option( 'wc_deposit_enable_tax_inclusion');
+if($enable_tax_inclusion=='yes')
+{
+
+
+add_action( 'woocommerce_cart_totals_after_order_total', 'display_cart_totals_after1', 1 );
+add_action( 'woocommerce_review_order_after_order_total', 'display_cart_totals_after1', 1 );
+function display_cart_totals_after1() {
+$is_tax_included = wc_tax_enabled() && 'excl' != WC()->cart->tax_display_cart;
+		$tax_message     = $is_tax_included ? __( '(includes tax)', 'woocommerce-deposits' ) : __( '(excludes tax)', 'woocommerce-deposits' );
+	$tax_element     = wc_tax_enabled() ? ' <small class="tax_label">' . $tax_message . '</small>' : '';
+global $woocommerce;  
+
+$future_payment_amount = $woocommerce->cart->total;
+
+?>
+<style>
+.woocommerce-checkout-review-order-table tr:nth-last-child(3),.cart_totals tr:nth-last-child(3){display:none;}
+</style>
+		<tr class="order-total">
+		<th><?php _e( 'Future Payments', 'woocommerce-deposits' ); ?></th>
+		<td data-title="<?php esc_attr_e( 'Future Payments', 'woocommerce-deposits' ); ?>"><?php echo wc_price( $future_payment_amount ); ?><?php //echo $tax_element; ?></td>
+		</tr><?php
+
+
+	}
+
+	
+}
